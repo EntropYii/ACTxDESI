@@ -1,0 +1,185 @@
+import argparse
+import numpy as np
+import pandas as pd
+import h5py
+from astropy.io import fits
+import pixell 
+from pixell import enmap
+import os
+import matplotlib.pyplot as plt
+
+###################### Argument parse and Reading directories from config.txt ##############################
+#parser = argparse.ArgumentParser()
+#parser.add_argument("-c", "--catalog", dest="catalog", help="cluster catalog to use", metavar="FILE")
+#parser.add_argument("-a","--analysis",dest="analysis",help="what analysis to run",metavar="FILE",action='append')
+#args = parser.parse_args()
+def load_config(config_file="config.txt"):
+    config = {}
+    with open(config_file, "r") as file:
+        for line in file:
+            if line.strip() and not line.startswith("#"):
+                key, value = line.strip().split("=", 1)
+                config[key.strip()] = value.strip()
+    return config
+
+# Load configuration
+config = load_config()
+
+catalog_dir = config.get("catalog_dir")
+ilc_map_dir = config.get("ilc_map_dir")
+submap_dir = config.get("submap_dir")
+
+# Ensure output directory exists
+#os.makedirs(catalog_dir, exist_ok=True)
+
+print(f"catalog directory is : {catalog_dir}")
+print(f"ilc map directory is: {ilc_map_dir}")
+print(f"submap_dir directory is: {submap_dir}")
+
+
+
+################################### apply flags from header ############################################
+catalog = pd.read_csv(catalog_dir, delimiter=',', skiprows=17)  # please manually count the rows of flags
+
+# Apply the inverse white noise variance cut (45 µK cut for more conservative cuts)
+catalog = catalog[(catalog['divcut'] == 2)]
+
+# Apply the galactic plane masking cut (50% for conservativeness)
+catalog = catalog[catalog['galcut'] == 2]
+
+#data = data[data['PS'] == 2]
+catalog = catalog[catalog['PS15mJy_cut'] == 1]
+catalog = catalog[catalog['PS100mJy_cut'] == 1]
+
+catalog = catalog[catalog['S16ILC'] == 1]
+
+################################### submap extraction  ##############################################
+
+# Replace with the actual column names for RA and Dec in your catalog
+ra_column = 'ra'
+dec_column = 'dec'
+
+# Initialize a dictionary to store coordinates for each bin
+coordinates_by_bin = {bin_name: ([], [], [],[]) for bin_name in ['L43', 'L61', 'L79', 'L98', 'L116', 'L43D', 'L61D', 'L79D', 'L98D']}
+
+# Iterate through each row to handle overlapping bins
+for _, row in catalog.iterrows():
+    luminosity = row['lum']  # Replace 'Luminosity' with the actual column name
+    z = row['z']
+    ra = row[ra_column]
+    dec = row[dec_column]
+    # Check each bin condition and append coordinates to the corresponding bin
+    if luminosity > 4.30e10:
+        coordinates_by_bin['L43'][0].append(ra)
+        coordinates_by_bin['L43'][1].append(dec)
+        coordinates_by_bin['L43'][2].append(luminosity)
+        coordinates_by_bin['L43'][3].append(z)
+    if luminosity > 6.10e10:
+        coordinates_by_bin['L61'][0].append(ra)
+        coordinates_by_bin['L61'][1].append(dec)
+        coordinates_by_bin['L61'][2].append(luminosity)
+        coordinates_by_bin['L61'][3].append(z)
+    if luminosity > 7.90e10:
+        coordinates_by_bin['L79'][0].append(ra)
+        coordinates_by_bin['L79'][1].append(dec)
+        coordinates_by_bin['L79'][2].append(luminosity)
+        coordinates_by_bin['L79'][3].append(z)
+    if luminosity > 9.80e10:
+        coordinates_by_bin['L98'][0].append(ra)
+        coordinates_by_bin['L98'][1].append(dec)
+        coordinates_by_bin['L98'][2].append(luminosity)
+        coordinates_by_bin['L98'][3].append(z)
+    if luminosity > 11.60e10:
+        coordinates_by_bin['L116'][0].append(ra)
+        coordinates_by_bin['L116'][1].append(dec)
+        coordinates_by_bin['L116'][2].append(luminosity)
+        coordinates_by_bin['L116'][3].append(z)
+    if 4.30e10 < luminosity <= 6.10e10:
+        coordinates_by_bin['L43D'][0].append(ra)
+        coordinates_by_bin['L43D'][1].append(dec)
+        coordinates_by_bin['L43D'][2].append(luminosity)
+        coordinates_by_bin['L43D'][3].append(z)
+    if 6.10e10 < luminosity <= 7.90e10:
+        coordinates_by_bin['L61D'][0].append(ra)
+        coordinates_by_bin['L61D'][1].append(dec)
+        coordinates_by_bin['L61D'][2].append(luminosity)
+        coordinates_by_bin['L61D'][3].append(z)
+    if 7.90e10 < luminosity <= 9.80e10:
+        coordinates_by_bin['L79D'][0].append(ra)
+        coordinates_by_bin['L79D'][1].append(dec)
+        coordinates_by_bin['L79D'][2].append(luminosity)
+        coordinates_by_bin['L79D'][3].append(z)
+    if 9.80e10 < luminosity <= 11.60e10:
+        coordinates_by_bin['L98D'][0].append(ra)
+        coordinates_by_bin['L98D'][1].append(dec)
+        coordinates_by_bin['L98D'][2].append(luminosity)
+        coordinates_by_bin['L98D'][3].append(z)
+
+# Convert lists to arrays for each bin
+for bin_name in coordinates_by_bin:
+    coordinates_by_bin[bin_name] = (np.array(coordinates_by_bin[bin_name][0]), np.array(coordinates_by_bin[bin_name][1]),np.array(coordinates_by_bin[bin_name][2]),np.array(coordinates_by_bin[bin_name][3]))
+
+# Check if bin is healthy 
+example_bin = "L43D"  # Replace with the bin you want
+if example_bin in coordinates_by_bin:
+    ra_coords, dec_coords, luminosity, redshift = coordinates_by_bin[example_bin]
+    print(f"Coordinates for bin {example_bin}:")
+    print("RA:", ra_coords)
+    print("Dec:", dec_coords)
+    print("Luminosity:", luminosity)
+    print("redshift:", redshift)
+else:
+    print(f"No data for bin {example_bin}")
+
+
+##################################### define pixel size #############################################
+pix_arcmin = 0.5  #each pixel is 0.5 arcmins 
+resolution_factor =  1/pix_arcmin # for making sure we get the exact size of submaps we want
+
+################################### submap extraction  ##############################################
+
+def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
+
+    map_data = enmap.read_map(fits_file, hdu=0)
+    if len()
+    wcs = map_data.wcs
+    
+    #catalog_hdulist = fits.open(catalog_file)
+    #catalog_data = catalog_hdulist[1].data
+
+    #ra = catalog_data['RADeg']
+    #dec = catalog_data['decDeg']
+    #mass = catalog_data['M500c']
+    
+    # below are coordinated copied from table 7 of Hassefield paper
+    #ra = [2.0418, 3.0152, 3.7276, 4.4138, 4.5623, 5.5553, 6.5699, 11.1076, 11.3051, 12.7875, 14.5189, 14.7855, 16.2195, 19.9971, 21.8227, 24.8407, 28.1764, 29.1008, 31.5567, 33.8699, 34.5626, 34.9533, 34.9759, 35.3925, 35.7939, 37.1250, 37.7273, 39.9718, 40.0102, 40.3129, 41.4645, 42.5370, 44.1354, 45.2925, 45.4158, 45.8343, 47.0481, 50.1239, 51.7075, 54.2438, 55.5008, 55.6845, 57.1612, 57.1605, 306.3006, 312.6264, 312.6814, 312.7935, 312.7885, 313.8581, 314.7234, 322.1036, 322.4186, 322.5367, 323.7907, 323.8151, 323.9310, 328.2375, 328.6319, 329.0407, 335.1922, 337.3042, 343.3432, 345.6427, 346.9176, 351.8660, 354.4156, 357.9349]
+    #dec = [2.0204, -0.7693, -0.9502, -0.8580, -0.3795, -0.6050, 1.3367, 1.2221, -1.8827, 0.9323, 0.5106, -0.8326, 0.0495, 0.9193, 0.3468, -1.4769, 1.0059, -1.3879, -1.2428, 0.5091, -0.6883, 0.3755, 1.4973, -0.2063, -0.9466, 0.5033, -0.4043, -1.5758, 1.2693, -0.3109, -0.7013, 0.1403, 0.1049, -1.1716, 1.9219, 1.9214, 1.0607, 0.5399, -0.7312, -1.1705, 1.0873, -0.2899, 0.4892, -0.4681, 0.5130, -0.9311, 1.3857, 0.9488, 2.2628, 1.0985, 1.3836, 1.5996, 0.0891, 0.7590, -1.0396, 1.4247, 0.1568, -1.2458, -0.8197, 1.3857, -0.7095, -0.0743, -0.5280, 0.0419, 1.5161, -2.0777, 0.2690, 0.1538]
+    
+    # Define submap size in arcminutes and convert to radians
+    submap_size_rad = np.deg2rad(submap_size / 60.0)
+    total_items = len(ra)
+    milestones = [total_items * i // 10 for i in range(1, 11)]
+    for i, (ra_source, dec_source) in enumerate(zip(ra, dec)):
+
+        pos = np.deg2rad([dec_source, ra_source])  # [DEC, RA] in radians
+        # bounding box for the submap
+        box = np.array([[pos[0] - submap_size_rad / 2, pos[1] - submap_size_rad / 2],
+                        [pos[0] + submap_size_rad / 2, pos[1] + submap_size_rad / 2]])
+        
+        # Check if the current iteration hits a milestone
+        if i + 1 in milestones:  # i + 1 because progress is 1-based
+            progress = (i + 1) / total_items * 100
+            print(f"extraction: {int(progress)}% complete")
+        submap = enmap.submap(map_data, box=box)
+        if submap.shape[0] != 36 or submap.shape[1] != 36: 
+            print([dec_source, ra_source], submap.shape)
+
+        # Save the submap to a FITS file
+        submap_filename = f"{output_dir}/submap_{i}.fits"
+        enmap.write_map(submap_filename, submap)
+    
+    print("Submap Extraction complete!")
+        
+
+
+

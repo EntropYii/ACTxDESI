@@ -1,0 +1,12 @@
+# Configuration File
+# Specify file paths and directories below
+
+catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
+#f150_map_dir =
+#f150_divmap_dir = 
+#f090_map_dir =
+#f090_divmap_dir = 
+ilc_map_dir = /Users/yi/Documents/CMB_SZ/ymap/ilc_actplanck_ymap.fits
+
+submap_dir=/Users/yi/Documents/ACTxDESI_test/submap/
+#stacked_map_dir = 
