@@ -120,28 +120,31 @@ for bin_name in coordinates_by_bin:
     coordinates_by_bin[bin_name] = (np.array(coordinates_by_bin[bin_name][0]), np.array(coordinates_by_bin[bin_name][1]),np.array(coordinates_by_bin[bin_name][2]),np.array(coordinates_by_bin[bin_name][3]))
 
 # Check if bin is healthy 
-example_bin = "L43D"  # Replace with the bin you want
-if example_bin in coordinates_by_bin:
-    ra_coords, dec_coords, luminosity, redshift = coordinates_by_bin[example_bin]
-    print(f"Coordinates for bin {example_bin}:")
-    print("RA:", ra_coords)
-    print("Dec:", dec_coords)
-    print("Luminosity:", luminosity)
-    print("redshift:", redshift)
-else:
-    print(f"No data for bin {example_bin}")
-
-
+#example_bin = "L43D"  # Replace with the bin you want
+#if example_bin in coordinates_by_bin:
+    #ra_coords, dec_coords, luminosity, redshift = coordinates_by_bin[example_bin]
+    #print(f"Coordinates for bin {example_bin}:")
+    #print("RA:", ra_coords)
+    #print("Dec:", dec_coords)
+    #print("Luminosity:", luminosity)
+    #print("redshift:", redshift)
+#else:
+    #print(f"No data for bin {example_bin}")
+Dsum = len(coordinates_by_bin['L43D'][1])+ len(coordinates_by_bin['L61D'][1])+ len(coordinates_by_bin['L79D'][1])+ len(coordinates_by_bin['L98D'][1])
+Jdiff = len(coordinates_by_bin['L43'][1])-len(coordinates_by_bin['L116'][1])
+if Dsum-Jdiff ==0:
+    print('~Bin size looks good ! ')
 ##################################### define pixel size #############################################
 pix_arcmin = 0.5  #each pixel is 0.5 arcmins 
 resolution_factor =  1/pix_arcmin # for making sure we get the exact size of submaps we want
+
+
 
 ################################### submap extraction  ##############################################
 
 def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
 
     map_data = enmap.read_map(fits_file, hdu=0)
-    if len()
     wcs = map_data.wcs
     
     #catalog_hdulist = fits.open(catalog_file)
@@ -170,6 +173,7 @@ def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
         if i + 1 in milestones:  # i + 1 because progress is 1-based
             progress = (i + 1) / total_items * 100
             print(f"extraction: {int(progress)}% complete")
+            
         submap = enmap.submap(map_data, box=box)
         if submap.shape[0] != 36 or submap.shape[1] != 36: 
             print([dec_source, ra_source], submap.shape)
@@ -178,7 +182,30 @@ def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
         submap_filename = f"{output_dir}/submap_{i}.fits"
         enmap.write_map(submap_filename, submap)
     
-    print("Submap Extraction complete!")
+    print("~Submap Extraction complete!")
+
+# for Bin_name in ['L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D']:
+for Bin_name in ['L116', 'L98D']:
+     
+    #fits_file = filename = Home + '/ACTxDESI/s22_product/act_planck_s08_s22_ftot_night_map.fits'
+    #catalog_file = '/Users/yi/Documents/CMB_SZ/DR5_cluster-catalog_v1.1.fits'
+    
+    #base_output_path = "/Users/yi/Documents/CMB_SZ/ACTxDESI/s22_submap/"
+
+    # Combine them to create the full path
+    output_dir = f"{submap_dir}{Bin_name}"
+
+    #output_dir = "/Users/yi/Documents/CMB_SZ/ACTxDESI/DR15_submap/L98D/"
+
+    ra = coordinates_by_bin[Bin_name][0]
+    dec = coordinates_by_bin[Bin_name][1]
+    Lum = coordinates_by_bin[Bin_name][2]
+    z = coordinates_by_bin[Bin_name][3]
+    print('Now start to extract submaps for Lum bin', Bin_name, ':')
+    extract_submaps(ilc_map_dir, ra, dec, output_dir)
+    Lum_mean = sum(Lum)/len(Lum)
+    z_mean = sum(z)/len(z)
+    print ('the avergae luminosity and redshift of ', Bin_name,' is',Lum_mean, z_mean,'Total number of sources in this bin is', len(Lum))
         
 
 
