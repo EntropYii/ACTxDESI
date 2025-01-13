@@ -17,9 +17,18 @@ def load_config(config_file="config.txt"):
     config = {}
     with open(config_file, "r") as file:
         for line in file:
+            # Skip empty lines and comments
             if line.strip() and not line.startswith("#"):
-                key, value = line.strip().split("=", 1)
-                config[key.strip()] = value.strip()
+                # Ensure the line contains an '=' character
+                if "=" in line:
+                    key, value = line.strip().split("=", 1)
+                    # Handle list parsing
+                    if "," in value:
+                        config[key.strip()] = [item.strip() for item in value.split(",")]
+                    else:
+                        config[key.strip()] = value.strip()
+                else:
+                    print(f"Skipping malformed line: {line.strip()}")
     return config
 
 # Load configuration
@@ -28,6 +37,8 @@ config = load_config()
 catalog_dir = config.get("catalog_dir")
 ilc_map_dir = config.get("ilc_map_dir")
 submap_dir = config.get("submap_dir")
+lum_bin =  config["lum_bin"]
+print(lum_bin)
 
 # Ensure output directory exists
 #os.makedirs(catalog_dir, exist_ok=True)
@@ -184,8 +195,39 @@ def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
     
     print("~Submap Extraction complete!")
 
+def stack_submaps(submap_dir, output_file):
+    # List all submap 
+    submap_files = [os.path.join(submap_dir, f) for f in os.listdir(submap_dir) if f.endswith('.fits')]
+    
+    #get shape and initialize the stack
+    first_submap = enmap.read_map(submap_files[0])
+    stack = np.zeros_like(first_submap)
+    count = 0
+    
+    bad_count = 0  # for weried shaped submap count 
+    total_items = len(submap_files)
+    milestones = [total_items * i // 10 for i in range(1, 11)]
+    for submap_file in submap_files:
+        submap = enmap.read_map(submap_file)
+        if submap.shape[0] != 36 or submap.shape[1] != 36 : 
+            bad_count += 1
+            print("This file", submap_file,"has shape", submap.shape,"Total bad submap", bad_count)
+            continue
+        if count + 1 in milestones:  # i + 1 because progress is 1-based
+            progress = (count + 1) / total_items * 100
+            print(f"stacking: {int(progress)}% complete")
+        stack += submap
+        count += 1
+    print("Stacking complete!")
+    # Average 
+    stack /= count
+    
+    enmap.write_map(output_file, stack)
+    print(f"Stacking completed. Stacked map saved as {output_file}")
+
+    
 # for Bin_name in ['L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D']:
-for Bin_name in ['L116', 'L98D']:
+for Bin_name in lum_bin:
      
     #fits_file = filename = Home + '/ACTxDESI/s22_product/act_planck_s08_s22_ftot_night_map.fits'
     #catalog_file = '/Users/yi/Documents/CMB_SZ/DR5_cluster-catalog_v1.1.fits'
@@ -207,6 +249,9 @@ for Bin_name in ['L116', 'L98D']:
     z_mean = sum(z)/len(z)
     print ('the avergae luminosity and redshift of ', Bin_name,' is',Lum_mean, z_mean,'Total number of sources in this bin is', len(Lum))
         
-
+    base_path_stacking = config.get("stacked_map_dir")
+    output_file =f"{base_path_stacking}{Bin_name}_stacked.fits"
+    stack_submaps(output_dir, output_file)  # output_dir here is where submap stored
+    
 
 

@@ -1,6 +1,9 @@
 # Configuration File
-# Specify file paths and directories below
+# Specify file directories and tune the analysis you want to do below 
 
+############################ submap extraction ##############################
+lum_bin = L98, L79   # type here the luminosity bin you want to extract and stack submaps
+                    # 'L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D'
 catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
 #f150_map_dir =
 #f150_divmap_dir = 
@@ -8,5 +11,7 @@ catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
 #f090_divmap_dir = 
 ilc_map_dir = /Users/yi/Documents/CMB_SZ/ymap/ilc_actplanck_ymap.fits
 
-submap_dir=/Users/yi/Documents/ACTxDESI_test/submap/
-#stacked_map_dir = 
+submap_dir = /Users/yi/Documents/ACTxDESI_test/submap/
+
+################################  stacking  #################################
+stacked_map_dir = /Users/yi/Documents/ACTxDESI_test/stacked_map/
