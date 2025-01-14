@@ -7,6 +7,7 @@ import pixell
 from pixell import enmap
 import os
 import matplotlib.pyplot as plt
+import pickle
 
 ###################### Argument parse and Reading directories from config.txt ##############################
 #parser = argparse.ArgumentParser()
@@ -71,7 +72,7 @@ ra_column = 'ra'
 dec_column = 'dec'
 
 # Initialize a dictionary to store coordinates for each bin
-coordinates_by_bin = {bin_name: ([], [], [],[]) for bin_name in ['L43', 'L61', 'L79', 'L98', 'L116', 'L43D', 'L61D', 'L79D', 'L98D']}
+coordinates_by_bin = {bin_name: ([], [], [],[], [],[],[],[],[]) for bin_name in ['L43', 'L61', 'L79', 'L98', 'L116', 'L43D', 'L61D', 'L79D', 'L98D']}
 
 # Iterate through each row to handle overlapping bins
 for _, row in catalog.iterrows():
@@ -126,9 +127,19 @@ for _, row in catalog.iterrows():
         coordinates_by_bin['L98D'][2].append(luminosity)
         coordinates_by_bin['L98D'][3].append(z)
 
+
+
+
+# Export dictionary to a pickle file
+with open("Bin_dic.pkl", "wb") as pickle_file:
+    pickle.dump(coordinates_by_bin, pickle_file)
+print("Dictionary exported as Pickle!")
+
 # Convert lists to arrays for each bin
 for bin_name in coordinates_by_bin:
     coordinates_by_bin[bin_name] = (np.array(coordinates_by_bin[bin_name][0]), np.array(coordinates_by_bin[bin_name][1]),np.array(coordinates_by_bin[bin_name][2]),np.array(coordinates_by_bin[bin_name][3]))
+
+
 
 # Check if bin is healthy 
 #example_bin = "L43D"  # Replace with the bin you want
@@ -157,7 +168,9 @@ def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
 
     map_data = enmap.read_map(fits_file, hdu=0)
     wcs = map_data.wcs
-    
+    if len(map_data) <= 5: 
+        map_data = map_data[0]
+    print(len(map_data))
     #catalog_hdulist = fits.open(catalog_file)
     #catalog_data = catalog_hdulist[1].data
 
@@ -225,10 +238,11 @@ def stack_submaps(submap_dir, output_file):
     enmap.write_map(output_file, stack)
     print(f"Stacking completed. Stacked map saved as {output_file}")
 
-    
+
+resolution_factor = 2
 # for Bin_name in ['L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D']:
 for Bin_name in lum_bin:
-     
+    
     #fits_file = filename = Home + '/ACTxDESI/s22_product/act_planck_s08_s22_ftot_night_map.fits'
     #catalog_file = '/Users/yi/Documents/CMB_SZ/DR5_cluster-catalog_v1.1.fits'
     
@@ -239,6 +253,7 @@ for Bin_name in lum_bin:
 
     #output_dir = "/Users/yi/Documents/CMB_SZ/ACTxDESI/DR15_submap/L98D/"
 
+    ###################### submaps for CMB #################
     ra = coordinates_by_bin[Bin_name][0]
     dec = coordinates_by_bin[Bin_name][1]
     Lum = coordinates_by_bin[Bin_name][2]
@@ -249,9 +264,28 @@ for Bin_name in lum_bin:
     z_mean = sum(z)/len(z)
     print ('the avergae luminosity and redshift of ', Bin_name,' is',Lum_mean, z_mean,'Total number of sources in this bin is', len(Lum))
         
+    ################ submap for inverse variance map #####################
+    print('Now start to extract Div-submaps for Lum bin', Bin_name, ':')
+    extract_submaps(config.get('ilc_div_map_dir'), ra, dec, config.get('div_submap_dir'))
+
+    ######################### naive stacking ###################
     base_path_stacking = config.get("stacked_map_dir")
     output_file =f"{base_path_stacking}{Bin_name}_stacked.fits"
     stack_submaps(output_dir, output_file)  # output_dir here is where submap stored
     
+    stacked_map = enmap.read_map(output_file)
+    plt.imshow(stacked_map,cmap='viridis')
+    ax = plt.gca()
+    ax.set_xticks(np.arange(0, stacked_map.shape[1], resolution_factor))
+    ax.set_yticks(np.arange(0, stacked_map.shape[0], resolution_factor))
 
+    # Adjust tick labels to count every 2 pixels as one unit
+    ax.set_xticklabels(np.arange(0, stacked_map.shape[1] // 2))
+    ax.set_yticklabels(np.arange(0, stacked_map.shape[0] // 2))
+    cbar = plt.colorbar(orientation='vertical')
+    cbar.set_label('Intensity')
+    plt.title(Bin_name)
+    plt.xlabel('Arcminutes')
+    plt.ylabel('Arcminutes')
+    plt.savefig(f"{base_path_stacking}{Bin_name}_stacked.png")
 
