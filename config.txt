@@ -1,7 +1,9 @@
 # Configuration File
 # Specify file directories and tune the analysis you want to do below 
 
+#############################################################################
 ############################ submap extraction ##############################
+#############################################################################
 # type here the luminosity bin you want to extract and stack submaps
 lum_bin = L116,
 # 'L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D'
@@ -17,6 +19,11 @@ submap_dir = /Users/yi/Documents/ACTxDESI_test/submap/
 ilc_div_map_dir = /Users/yi/Documents/CMB_SZ/act_dr5.01_s08s18_AA_f150_daynight_ivar.fits
 div_submap_dir = /Users/yi/Documents/ACTxDESI_test/div_submap/
 
+#############################################################################
 ################################  stacking  #################################
+#############################################################################
 stacked_map_dir = /Users/yi/Documents/ACTxDESI_test/stacked_map/
 
+#############################################################################
+############################  AP and Jackknife  #################################
+#############################################################################
