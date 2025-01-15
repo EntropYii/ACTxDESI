@@ -1,36 +1,42 @@
 # ACTxDESI Pipeline
 
-This repository contains tools for processing ACT_ILC maps and performing submap extraction, stacking, and jackknife uncertainty estimation. Follow the steps below to set up and run the pipeline.
+## Getting Started
 
----
+### Step 1: Download the ACT_ILC Map
+First, download the ACT_ILC map from [this link](#).  
+After downloading, set up the directory path in the code as specified.
 
-## 1. Download the ACT_ILC Map
-Please download the ACT_ILC map from [here](URL). Set up the directory path in the relevant sections of the code.
+### Step 2: Prepare the Catalog and Point Source Mask
+The catalog and point source mask are produced by Yulin. Ensure these are available before proceeding.
 
----
-
-## 2. Catalog and Point Source Mask
-Ensure you have the catalog and point source mask produced by Yulin. These will be required for the pipeline.
-
----
-
-## 3. Submap Extraction and Stacking
-To perform submap extraction and stacking:
-
-1. Place all file directories in the `config.txt` file. This file allows you to:
+### Step 3: Configure and Extract Submaps
+1. Before extracting the submap, set up the required file directories in `config.txt`. This file also allows you to:
    - Toggle luminosity bins.
    - Specify the catalog file.
-   Detailed instructions can be found within the `config.txt` file.
+   
+   Detailed instructions can be found within `config.txt`.
 
-2. Once `config.txt` is set up, run the `submap_extraction_stacking.py` script. This will:
-   - Generate submaps of the CMB with accompanying divmaps.
-   - Output a stacked image.
-   - Create a dictionary containing the following 8 lists for each luminosity bin:
-     - `ra`, `dec`, `lum`, `z`
-     - `disk_mean`, `disk_std`
-     - `ring_mean`, `ring_std`
-     - `divsubmap_mean`
+2. Once `config.txt` is configured, run the submap extraction script by executing:
 
-### Command to Run:
-```bash
-python submap_extraction_stacking.py
+   ```bash
+   python submap_extraction_stacking.py
+
+This script will:
+
+Generate submaps of the CMB along with accompanying divmap.
+Output:
+A stacking image.
+A dictionary containing 8 lists for each luminosity bin: ra, dec, lum, z, disk_mean, disk_std, ring_mean, ring_std, and divsubmap_mean.
+
+### Step 4: Jackknife uncertainty estimates
+
+Update the following parameters in config.txt:
+Arcminutes per pixel.
+Luminosity bin for uncertainty estimates.
+You can enable all_bins = True to run the estimates for all luminosity bins.
+Run the jackknife uncertainty estimation script by executing:
+
+   ```bash
+    python Jackknife_uncertainty.py
+
+This script will calculate uncertainty estimates for the specified luminosity bins.
