@@ -2,14 +2,10 @@
 
 ## Getting Started
 
-### Step 1: Download the ACT_ILC Map
-First, download the ACT_ILC map from [this link](#).  
-After downloading, set up the directory path in the code as specified.
-
-### Step 2: Prepare the Catalog and Point Source Mask
+### Step 1: Prepare the Catalog and Point Source Mask
 The catalog and point source mask are produced by Yulin. Ensure these are available before proceeding.
 
-### Step 3: Configure and Extract Submaps
+### Step 2: Configure and Extract Submaps
 1. Before extracting the submap, set up the required file directories in `config.txt`. This file also allows you to:
    - Toggle luminosity bins.
    - Specify the catalog file.
@@ -28,7 +24,7 @@ Output:
 A stacking image.
 A dictionary containing 8 lists for each luminosity bin: ra, dec, lum, z, disk_mean, disk_std, ring_mean, ring_std, and divsubmap_mean.
 
-### Step 4: Jackknife uncertainty estimates
+### Step 3: Jackknife uncertainty estimates
 
 Update the following parameters in config.txt:
 Arcminutes per pixel.
@@ -36,7 +32,6 @@ Luminosity bin for uncertainty estimates.
 You can enable all_bins = True to run the estimates for all luminosity bins.
 Run the jackknife uncertainty estimation script by executing:
 
-   ```bash
+    ```bash
     python Jackknife_uncertainty.py
 
-This script will calculate uncertainty estimates for the specified luminosity bins.
