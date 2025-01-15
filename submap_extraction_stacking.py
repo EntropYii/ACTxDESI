@@ -129,15 +129,11 @@ for _, row in catalog.iterrows():
 
 
 
-
-# Export dictionary to a pickle file
-with open("Bin_dic.pkl", "wb") as pickle_file:
-    pickle.dump(coordinates_by_bin, pickle_file)
-print("Dictionary exported as Pickle!")
-
 # Convert lists to arrays for each bin
-for bin_name in coordinates_by_bin:
-    coordinates_by_bin[bin_name] = (np.array(coordinates_by_bin[bin_name][0]), np.array(coordinates_by_bin[bin_name][1]),np.array(coordinates_by_bin[bin_name][2]),np.array(coordinates_by_bin[bin_name][3]))
+#for bin_name in coordinates_by_bin:
+ #   coordinates_by_bin[bin_name] = (np.array(coordinates_by_bin[bin_name][0]), np.array(coordinates_by_bin[bin_name][1]),np.array(coordinates_by_bin[bin_name][2]),np.array(coordinates_by_bin[bin_name][3])
+  #                                  ,np.array(coordinates_by_bin[bin_name][4]), np.array(coordinates_by_bin[bin_name][5]),np.array(coordinates_by_bin[bin_name][6]),np.array(coordinates_by_bin[bin_name][7])
+   #                                 ,np.array(coordinates_by_bin[bin_name][8]))
 
 
 
@@ -161,10 +157,43 @@ pix_arcmin = 0.5  #each pixel is 0.5 arcmins
 resolution_factor =  1/pix_arcmin # for making sure we get the exact size of submaps we want
 
 
+##################################### functions for AP masks ########################################
+def circular_mask(h, w,center=None, radius=None):
+    if center is None:  # use the middle of the image
+        center = [int(h/2), int(w/2)]
+    if radius is None:  # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], h-center[0], w-center[1])
+
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[1])**2 + (Y - center[0])**2)
+
+    mask = dist_from_center <= radius
+    return mask
+
+def ring_mask(h, w,center=None, radius_inner=None, radius_outter = None ):
+    if center is None:  # use the middle of the image
+        center = [int(h/2), int(w/2)]
+
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[1])**2 + (Y - center[0])**2)
+
+    mask = (dist_from_center <= radius_outter) & (dist_from_center >= radius_inner)
+    return mask
+##################################### AP params #####################################################
+
+fout = np.sqrt(2) #factor which defines outer AP radius
+fres = 2  # resolution factor for inverse of pixel armin representation 
+fres = float(fres)
+
+radius = 2.1*fres#arcmin 
+
+
+radius = float(radius)
+radius_out = radius*fout #defining AP radii 
 
 ################################### submap extraction  ##############################################
 
-def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
+def extract_submaps(fits_file, ra, dec, output_dir, lum_bin, divmap, submap_size=18.0,):
 
     map_data = enmap.read_map(fits_file, hdu=0)
     wcs = map_data.wcs
@@ -202,6 +231,28 @@ def extract_submaps(fits_file, ra, dec, output_dir, submap_size=18.0):
         if submap.shape[0] != 36 or submap.shape[1] != 36: 
             print([dec_source, ra_source], submap.shape)
 
+        h, w = submap.shape
+        if divmap == True: 
+            mask = circular_mask(h, w, radius=radius)
+            div_mean = np.mean(submap[mask])
+            coordinates_by_bin[lum_bin][8].append(div_mean)
+        else: 
+            mask = circular_mask(h, w, radius=radius)
+            mask_outter_ring = ring_mask(h, w, radius_inner=radius, radius_outter = radius_out)
+            disk_mean = np.mean(submap[mask])
+            disk_std = np.std(submap[mask])
+            coordinates_by_bin[lum_bin][4].append(disk_mean)
+            coordinates_by_bin[lum_bin][5].append(disk_std)
+
+            
+            ring_mean = np.mean(submap[mask_outter_ring])
+            ring_std = np.std(submap[mask_outter_ring])
+            coordinates_by_bin[lum_bin][6].append(ring_mean)
+            coordinates_by_bin[lum_bin][7].append(ring_std)
+
+            #tsz_signal = tsz_signal_inner - tsz_signal_outter_ring
+            
+        
         # Save the submap to a FITS file
         submap_filename = f"{output_dir}/submap_{i}.fits"
         enmap.write_map(submap_filename, submap)
@@ -239,10 +290,13 @@ def stack_submaps(submap_dir, output_file):
     print(f"Stacking completed. Stacked map saved as {output_file}")
 
 
+
+
 resolution_factor = 2
 # for Bin_name in ['L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D']:
 for Bin_name in lum_bin:
-    
+    if Bin_name == "":
+        continue
     #fits_file = filename = Home + '/ACTxDESI/s22_product/act_planck_s08_s22_ftot_night_map.fits'
     #catalog_file = '/Users/yi/Documents/CMB_SZ/DR5_cluster-catalog_v1.1.fits'
     
@@ -259,14 +313,14 @@ for Bin_name in lum_bin:
     Lum = coordinates_by_bin[Bin_name][2]
     z = coordinates_by_bin[Bin_name][3]
     print('Now start to extract submaps for Lum bin', Bin_name, ':')
-    extract_submaps(ilc_map_dir, ra, dec, output_dir)
+    extract_submaps(ilc_map_dir, ra, dec, output_dir, Bin_name, divmap= False)
     Lum_mean = sum(Lum)/len(Lum)
     z_mean = sum(z)/len(z)
     print ('the avergae luminosity and redshift of ', Bin_name,' is',Lum_mean, z_mean,'Total number of sources in this bin is', len(Lum))
         
     ################ submap for inverse variance map #####################
     print('Now start to extract Div-submaps for Lum bin', Bin_name, ':')
-    extract_submaps(config.get('ilc_div_map_dir'), ra, dec, config.get('div_submap_dir'))
+    extract_submaps(config.get('ilc_div_map_dir'), ra, dec, config.get('div_submap_dir'), Bin_name, divmap= True)
 
     ######################### naive stacking ###################
     base_path_stacking = config.get("stacked_map_dir")
@@ -288,4 +342,9 @@ for Bin_name in lum_bin:
     plt.xlabel('Arcminutes')
     plt.ylabel('Arcminutes')
     plt.savefig(f"{base_path_stacking}{Bin_name}_stacked.png")
+
+# Export dictionary to a pickle file
+with open("Bin_dic.pkl", "wb") as pickle_file:
+    pickle.dump(coordinates_by_bin, pickle_file)
+print("Dictionary exported as Pickle!!")
 

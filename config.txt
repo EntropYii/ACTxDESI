@@ -5,7 +5,7 @@
 ############################ submap extraction ##############################
 #############################################################################
 # type here the luminosity bin you want to extract and stack submaps
-lum_bin = L116,
+lum_bin = ,L116
 # 'L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D'
 
 catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
@@ -27,3 +27,7 @@ stacked_map_dir = /Users/yi/Documents/ACTxDESI_test/stacked_map/
 #############################################################################
 ############################  AP and Jackknife  #################################
 #############################################################################
+#radius = 
+#arcmin_pix = 
+lum_bin_Jack = L116,
+
