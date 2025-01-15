@@ -32,6 +32,5 @@ Luminosity bin for uncertainty estimates.
 You can enable all_bins = True to run the estimates for all luminosity bins.
 Run the jackknife uncertainty estimation script by executing:
 
-    ```bash
     python Jackknife_uncertainty.py
 
