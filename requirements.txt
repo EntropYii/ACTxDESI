@@ -1,0 +1,8 @@
+numpy 
+math
+matplotlib
+pickle
+pandas
+h5py
+astropy
+pixell 
