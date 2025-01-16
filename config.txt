@@ -5,10 +5,13 @@
 ############################ submap extraction ##############################
 #############################################################################
 # type here the luminosity bin you want to extract and stack submaps
-lum_bin = ,L116
-# 'L116','L98', 'L79','L61', 'L43', 'L43D', 'L61D', 'L79D', 'L98D'
+lum_bin = L116, L98D
+# L116,L98, L79,L61, L43, L43D, L61D, L79D, L98D
+#for full catalog
+#skip_row = 17 
 
-catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
+#catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/V20_DR15_Catalog_v3.csv
+catalog_dir = /Users/yi/Documents/CMB_SZ/ACTxDESI/test_catalog.csv
 #f150_map_dir =
 #f150_divmap_dir = 
 #f090_map_dir =
@@ -29,5 +32,7 @@ stacked_map_dir = /Users/yi/Documents/ACTxDESI_test/stacked_map/
 #############################################################################
 #radius = 
 #arcmin_pix = 
-lum_bin_Jack = L116,
+lum_bin_Jack = L116, L98D
+#all_bins = True
+
 

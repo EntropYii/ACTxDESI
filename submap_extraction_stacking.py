@@ -51,7 +51,8 @@ print(f"submap_dir directory is: {submap_dir}")
 
 
 ################################### apply flags from header ############################################
-catalog = pd.read_csv(catalog_dir, delimiter=',', skiprows=17)  # please manually count the rows of flags
+catalog = pd.read_csv(catalog_dir, delimiter=',')  # please manually count the rows of flags 
+# for full catalog ski row 17 
 
 # Apply the inverse white noise variance cut (45 µK cut for more conservative cuts)
 catalog = catalog[(catalog['divcut'] == 2)]
@@ -312,6 +313,7 @@ for Bin_name in lum_bin:
     dec = coordinates_by_bin[Bin_name][1]
     Lum = coordinates_by_bin[Bin_name][2]
     z = coordinates_by_bin[Bin_name][3]
+    print('-----------------------------')
     print('Now start to extract submaps for Lum bin', Bin_name, ':')
     extract_submaps(ilc_map_dir, ra, dec, output_dir, Bin_name, divmap= False)
     Lum_mean = sum(Lum)/len(Lum)
@@ -319,6 +321,7 @@ for Bin_name in lum_bin:
     print ('the avergae luminosity and redshift of ', Bin_name,' is',Lum_mean, z_mean,'Total number of sources in this bin is', len(Lum))
         
     ################ submap for inverse variance map #####################
+    print('-----------------------------')
     print('Now start to extract Div-submaps for Lum bin', Bin_name, ':')
     extract_submaps(config.get('ilc_div_map_dir'), ra, dec, config.get('div_submap_dir'), Bin_name, divmap= True)
 
@@ -344,7 +347,8 @@ for Bin_name in lum_bin:
     plt.savefig(f"{base_path_stacking}{Bin_name}_stacked.png")
 
 # Export dictionary to a pickle file
+print('-----------------------------')
 with open("Bin_dic.pkl", "wb") as pickle_file:
     pickle.dump(coordinates_by_bin, pickle_file)
 print("Dictionary exported as Pickle!!")
-
+print('-----------------------------')
