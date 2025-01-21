@@ -51,7 +51,7 @@ print(f"submap_dir directory is: {submap_dir}")
 
 
 ################################### apply flags from header ############################################
-catalog = pd.read_csv(catalog_dir, delimiter=',')  # please manually count the rows of flags 
+catalog = pd.read_csv(catalog_dir, delimiter=',', skiprows = 17)  # please manually count the rows of flags 
 # for full catalog ski row 17 
 
 # Apply the inverse white noise variance cut (45 µK cut for more conservative cuts)
@@ -345,6 +345,7 @@ for Bin_name in lum_bin:
     plt.xlabel('Arcminutes')
     plt.ylabel('Arcminutes')
     plt.savefig(f"{base_path_stacking}{Bin_name}_stacked.png")
+    plt.close()
 
 # Export dictionary to a pickle file
 print('-----------------------------')
